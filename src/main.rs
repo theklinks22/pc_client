@@ -3,14 +3,24 @@ use std::io::Write;
 
 use anyhow::Error;
 
-fn play_video() -> Result<(), Error> {
+fn is_uri_udp(uri: String) -> bool {
+    return true;
+}
+
+fn play_video(u: String) -> Result<(), Error> {
     // Initialize GStreamer
     gstreamer::init()?;
 
     // Build the pipeline
-    let uri =
-        "https://www.freedesktop.org/software/gstreamer-sdk/data/media/sintel_trailer-480p.webm";
-    let pipeline = gstreamer::parse_launch(&format!("playbin uri={}", uri))?;
+    let uri = u;
+        // "https://www.freedesktop.org/software/gstreamer-sdk/data/media/sintel_trailer-480p.webm";
+    let pipe = "
+    udpsrc port=5005 caps = \"application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264, payload=(int)96\" 
+    ! rtph264depay 
+    ! decodebin 
+    ! autovideosink
+    ";
+    let pipeline = gstreamer::parse_launch(&format!("{}", pipe))?;
 
     // Start playing
     let res = pipeline.set_state(gstreamer::State::Playing)?;
@@ -84,7 +94,12 @@ fn play_video() -> Result<(), Error> {
 
 
 fn main() {
-    match play_video(){
+    let mut line = String::new();
+    println!("Enter URI to connect to: ");
+    std::io::stdin().read_line(&mut line).unwrap();
+    println!("Attempting to connect to {}...", line);
+
+    match play_video(line){
         Ok(_) => {}
         Err(err) => eprintln!("Failed: {}", err)
     }
